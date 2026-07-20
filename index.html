@@ -1,0 +1,688 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+
+<title>XCAR аренда авто</title>
+
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+
+<script src="https://html2canvas.hertzen.com/dist/html2canvas.min.js"></script>
+
+<style>
+
+*{
+box-sizing:border-box
+}
+
+body{
+margin:0;
+font-family:Inter,sans-serif;
+background:#f6f7f9;
+color:#111;
+}
+
+.container{
+max-width:520px;
+margin:auto;
+padding:18px;
+}
+
+.logo{
+text-align:center;
+margin-bottom:20px
+}
+
+.logo h1{
+margin:0;
+font-size:28px;
+}
+
+.x{
+color:#ff2d2d
+}
+
+.card{
+background:white;
+border-radius:20px;
+padding:18px;
+margin-bottom:14px;
+box-shadow:0 10px 30px rgba(0,0,0,0.06);
+}
+
+label{
+font-size:13px;
+color:#666;
+}
+
+input,select{
+width:100%;
+padding:14px;
+margin-top:6px;
+margin-bottom:14px;
+border-radius:14px;
+border:1px solid #eee;
+font-size:16px;
+}
+
+button{
+width:100%;
+padding:16px;
+border-radius:16px;
+border:none;
+font-size:16px;
+font-weight:600;
+margin-top:8px;
+cursor:pointer;
+}
+
+.whatsapp{
+background:#25D366;
+color:white;
+}
+
+.exportMenu{
+display:none;
+flex-direction:column;
+gap:10px;
+margin-top:10px;
+}
+
+.exportMenu button{
+background:#111;
+color:white;
+}
+
+.discountBtns{
+display:flex;
+gap:8px;
+flex-wrap:wrap;
+margin-bottom:14px;
+}
+
+.discountBtns button{
+flex:1;
+padding:10px;
+background:#eee;
+color:#111;
+}
+
+.discountBtns button.active{
+background:#111;
+color:white;
+}
+
+.preview{
+background:white;
+border-radius:20px;
+padding:18px;
+box-shadow:0 5px 15px rgba(0,0,0,0.05);
+}
+
+.tableRow{
+display:flex;
+justify-content:space-between;
+padding:12px 0;
+border-bottom:1px solid #eee;
+}
+
+.total{
+font-size:17px;
+font-weight:700;
+text-align:center;
+margin-top:10px;
+}
+
+.receipt{
+background:white;
+border-radius:20px;
+padding:20px;
+margin-top:20px;
+border:1px solid #eee;
+}
+
+</style>
+</head>
+
+<body>
+
+<div class="container">
+
+<div class="logo">
+<h1>Аренда авто <span class="x">X</span>CAR</h1>
+</div>
+
+<div class="card">
+
+<label>Автомобиль</label>
+
+<select id="car">
+<option value="">Выбрать</option>
+<option value="3500">Lada Priora 2 — 3500₽</option>
+<option value="12000">Toyota Camry V70 — 12000₽</option>
+<option value="9000">Toyota Camry V55 — 9000₽</option>
+<option value="8000">Toyota Camry V50 — 8000₽</option>
+<option value="6000">Ford Focus 3 — 6000₽</option>
+</select>
+
+<label>Своя цена за сутки</label>
+<input type="number" inputmode="numeric" id="dayPrice">
+
+<label>Цена за час</label>
+<input type="number" inputmode="numeric" id="hourPrice">
+
+<label>Дата начала</label>
+<input type="date" id="dateStart">
+
+<label>Время начала</label>
+<input type="time" id="timeStart">
+
+<label>Дата окончания</label>
+<input type="date" id="dateEnd">
+
+<label>Время окончания</label>
+<input type="time" id="timeEnd">
+
+<label>Оплачено ₽</label>
+<input type="number" inputmode="numeric" id="paid" value="0">
+
+<label>Штрафы ₽</label>
+<input type="number" inputmode="numeric" id="fine" value="0">
+
+<label>Старый долг ₽</label>
+<input type="number" inputmode="numeric" id="oldDebt" value="0">
+
+<label>Ремонт от клиента ₽ (минус)</label>
+<input type="number" inputmode="numeric" id="repairClient" value="0">
+
+<label>Ремонт от хозяина ₽ (плюс)</label>
+<input type="number" inputmode="numeric" id="repairOwner" value="0">
+
+<label>Нарушения ₽</label>
+<input type="number" inputmode="numeric" id="violations" value="0">
+
+<label>Новый долг за период ₽</label>
+<input type="number" inputmode="numeric" id="periodDebt" value="0">
+
+</div>
+
+<div class="preview" id="preview"></div>
+
+<div class="card">
+
+<button class="whatsapp" onclick="toggleExport()">
+Отправить
+</button>
+
+<div class="exportMenu" id="exportMenu">
+
+<button onclick="showShortReport()">Короткий отчёт</button>
+<button onclick="showLongReport()">Длинный отчёт</button>
+<button onclick="printShortReport()">Печать короткого отчёта</button><button onclick="sendImage()">Скачать отчёт PNG</button><button onclick="sendPDF()">Открыть/сохранить PDF</button>
+
+</div>
+
+</div>
+
+<div id="finalReceipt"></div>
+
+</div>
+
+<script>
+
+let calcData={}
+
+const car=document.getElementById("car")
+const dayPrice=document.getElementById("dayPrice")
+const hourPrice=document.getElementById("hourPrice")
+
+const dateStart=document.getElementById("dateStart")
+const dateEnd=document.getElementById("dateEnd")
+
+const timeStart=document.getElementById("timeStart")
+const timeEnd=document.getElementById("timeEnd")
+
+const paid=document.getElementById("paid")
+const fine=document.getElementById("fine")
+const oldDebt=document.getElementById("oldDebt")
+const repairClient=document.getElementById("repairClient")
+const repairOwner=document.getElementById("repairOwner")
+const violations=document.getElementById("violations")
+const periodDebt=document.getElementById("periodDebt")
+
+const preview=document.getElementById("preview")
+const finalReceipt=document.getElementById("finalReceipt")
+
+function toggleExport(){
+
+let menu=document.getElementById("exportMenu")
+
+menu.style.display =
+menu.style.display==="flex"
+? "none"
+: "flex"
+
+}
+
+document.querySelectorAll("input,select")
+.forEach(el=>{
+
+el.addEventListener("input",calculate)
+
+})
+
+let now=new Date()
+
+dateStart.value=now.toISOString().slice(0,10)
+dateEnd.value=now.toISOString().slice(0,10)
+
+timeStart.value=now.toTimeString().slice(0,5)
+timeEnd.value=now.toTimeString().slice(0,5)
+
+function calculate(){
+
+let selectedCarPrice=parseFloat(car.value || 0)
+
+let customDayPrice=parseFloat(dayPrice.value || 0)
+
+let day = customDayPrice || selectedCarPrice
+
+let hour=parseFloat(hourPrice.value || 0)
+
+let start=new Date(dateStart.value+"T"+timeStart.value)
+let end=new Date(dateEnd.value+"T"+timeEnd.value)
+
+if(!start || !end || end<=start){
+return
+}
+
+let diffHours=(end-start)/1000/60/60
+
+let days=Math.floor(diffHours/24)
+
+let extraHours=Math.ceil(
+diffHours-(days*24)
+)
+
+if(extraHours<0){
+extraHours=0
+}
+
+let total=days*day
+
+let hourSum=extraHours*hour
+
+total+=hourSum
+
+let realDiscount=0
+
+if(selectedCarPrice>0 && customDayPrice>0){
+
+realDiscount=
+(selectedCarPrice-customDayPrice)*days
+
+if(realDiscount<0){
+realDiscount=0
+}
+
+}
+
+let paidVal=parseFloat(paid.value || 0)
+
+let fineVal=parseFloat(fine.value || 0)
+
+let oldDebtVal=parseFloat(oldDebt.value || 0)
+let repairClientVal=parseFloat(repairClient.value || 0)
+let repairOwnerVal=parseFloat(repairOwner.value || 0)
+let violationsVal=parseFloat(violations.value || 0)
+let periodDebtVal=parseFloat(periodDebt.value || 0)
+
+let newDebt = total + fineVal + violationsVal + periodDebtVal
+total = newDebt + oldDebtVal + repairOwnerVal
+
+let remaining=total-paidVal-repairClientVal
+
+calcData={
+start,
+end,
+days,
+extraHours,
+day,
+hourSum,
+paidVal,
+remaining,
+total,
+fineVal,
+oldDebtVal,
+realDiscount,
+repairClientVal,
+repairOwnerVal,
+violationsVal,
+periodDebtVal,
+newDebt
+}
+
+preview.innerHTML=`
+
+<div class="tableRow">
+<div>Сутки</div>
+<div>${days}</div>
+</div>
+
+<div class="tableRow">
+<div>Часы</div>
+<div>${extraHours}</div>
+</div>
+
+<div class="tableRow">
+<div>Скидка клиенту</div>
+<div>${realDiscount.toFixed(0)}₽</div>
+</div>
+
+<div class="tableRow">
+<div>Штрафы</div>
+<div>${fineVal.toFixed(0)}₽</div>
+</div>
+
+<div class="tableRow">
+<div>Старый долг</div>
+<div>${oldDebtVal.toFixed(0)}₽</div>
+</div>
+
+<div class="tableRow">
+<div>Новый долг</div>
+<div>${newDebt.toFixed(0)}₽</div>
+</div>
+
+<div class="tableRow">
+<div>Ремонт</div>
+<div>${(repairClientVal+repairOwnerVal).toFixed(0)}₽</div>
+</div>
+
+<div class="tableRow">
+<div>Оплачено</div>
+<div>${paidVal.toFixed(0)}₽</div>
+</div>
+
+<div class="total">
+Итого: ${remaining.toFixed(0)} ₽
+</div>
+
+`
+
+buildReceipt()
+
+}
+
+function buildReceipt(){
+
+let d=calcData
+
+let html=`
+
+<div class="receipt" id="receiptBox">
+
+<h3>Аренда авто XCAR</h3>
+
+<br>
+
+`
+
+let current=new Date(d.start)
+
+html+=`
+
+<div class="tableRow">
+<div>
+0 день —
+${current.toLocaleDateString("ru-RU")}
+</div>
+<div>оформление</div>
+</div>
+
+`
+
+for(let i=1;i<=d.days;i++){
+
+current.setDate(
+current.getDate()+1
+)
+
+html+=`
+
+<div class="tableRow">
+<div>
+${i} сутки —
+${current.toLocaleDateString("ru-RU")}
+</div>
+
+<div>${d.day}₽</div>
+</div>
+
+`
+
+}
+
+if(d.extraHours>0){
+
+html+=`
+
+<div class="tableRow">
+<div>Лишние часы</div>
+<div>${d.hourSum}₽</div>
+</div>
+
+`
+
+}
+
+html+=`
+
+<hr>
+
+<div class="tableRow">
+<div>Скидка клиенту</div>
+<div>${d.realDiscount.toFixed(0)}₽</div>
+</div>
+
+<div class="tableRow">
+<div>Штрафы</div>
+<div>${d.fineVal.toFixed(0)}₽</div>
+</div>
+
+<div class="tableRow">
+<div>Старый долг</div>
+<div>${d.oldDebtVal.toFixed(0)}₽</div>
+</div>
+
+<div class="tableRow">
+<div>Новый долг</div>
+<div>${d.newDebt.toFixed(0)}₽</div>
+</div>
+
+<div class="tableRow">
+<div>Ремонт</div>
+<div>${((d.repairClientVal||0)+(d.repairOwnerVal||0)).toFixed(0)}₽</div>
+</div>
+
+<div class="tableRow">
+<div>Оплачено</div>
+<div>${d.paidVal.toFixed(0)}₽</div>
+</div>
+
+<h2 style="text-align:center">
+Итого:
+${d.remaining.toFixed(0)} ₽
+</h2>
+
+</div>
+
+`
+
+finalReceipt.innerHTML=html
+
+}
+
+async function sendImage(){
+
+let receipt=document.getElementById("receiptBox")
+
+const canvas=await html2canvas(receipt)
+
+canvas.toBlob(async blob=>{
+
+const file=new File(
+[blob],
+"report.png",
+{
+type:"image/png"
+}
+)
+
+if(navigator.share){
+
+await navigator.share({
+files:[file]
+})
+
+}else{
+
+let a=document.createElement("a")
+
+a.href=URL.createObjectURL(blob)
+
+a.download="report.png"
+
+a.click()
+
+}
+
+})
+
+}
+
+async function sendPDF(){
+
+let d=calcData
+
+let html=`
+
+<div style="font-family:Arial;padding:30px">
+
+<h2 style="text-align:center">
+Отчёт аренды XCAR
+</h2>
+
+<p>
+<b>Дата оформления:</b>
+${d.start.toLocaleString("ru-RU")}
+</p>
+
+<p>
+<b>Дата окончания:</b>
+${d.end.toLocaleString("ru-RU")}
+</p>
+
+<hr>
+
+<p><b>Сутки:</b> ${d.days}</p>
+
+<p>
+<b>Лишние часы:</b>
+${d.extraHours}
+</p>
+
+<p>
+<b>Скидка клиенту:</b>
+${d.realDiscount.toFixed(0)} ₽
+</p>
+
+<p>
+<b>Штрафы:</b>
+${d.fineVal.toFixed(0)} ₽
+</p>
+
+<p>
+<b>Старый долг:</b>
+${d.oldDebtVal.toFixed(0)} ₽
+</p>
+
+<p>
+<b>Оплачено:</b>
+${d.paidVal.toFixed(0)} ₽
+</p>
+
+<h3>
+Итого к оплате:
+${d.remaining.toFixed(0)} ₽
+</h3>
+
+</div>
+
+`
+
+let frame=document.createElement("iframe")
+
+frame.style.position="absolute"
+frame.style.left="-9999px"
+
+document.body.appendChild(frame)
+
+frame.contentDocument.write(html)
+
+frame.contentDocument.close()
+
+setTimeout(()=>{
+
+frame.contentWindow.print()
+
+},500)
+
+}
+
+calculate()
+
+</script>
+
+</body>
+</html>
+
+<script>
+function shortReportHtml(){
+ if(!calcData || typeof calcData.remaining==='undefined'){ calculate(); }
+ return `
+ <html><body style="font-family:Arial;padding:20px">
+ <h2>Короткий отчёт XCAR</h2>
+ <p>Итого: ${calcData.remaining.toFixed(0)} ₽</p>
+ <p>Новый долг за период: ${(calcData.periodDebtVal||0).toFixed(0)} ₽</p>
+ <p>Старый долг: ${calcData.oldDebtVal.toFixed(0)} ₽</p>
+ </body></html>`;
+}
+
+function showShortReport(){
+ calculate();
+ const w = window.open('', '_blank');
+ w.document.open();
+ w.document.write(shortReportHtml());
+ w.document.close();
+}
+
+function showLongReport(){
+ calculate();
+ const w = window.open('', '_blank');
+ w.document.open();
+ w.document.write('<html><body>'+document.getElementById('finalReceipt').innerHTML+'</body></html>');
+ w.document.close();
+}
+
+function printShortReport(){
+ calculate();
+ const w = window.open('', '_blank');
+ w.document.open();
+ w.document.write(shortReportHtml());
+ w.document.close();
+ setTimeout(()=>w.print(),300);
+}
+</script>
